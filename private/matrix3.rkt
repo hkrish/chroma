@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require math/flonum
+         racket/flonum
          racket/unsafe/ops)
 
 (provide (except-out (all-defined-out) 3x3-check 3x3->values/unsafe))
@@ -27,7 +28,6 @@
             0. d2 0.
             0. 0. d3))
 
-;; [unsafe] Must check argument first using 3x3-check
 (define-syntax-rule (3x3->values/unsafe m)
   (values (unsafe-flvector-ref m 0)
           (unsafe-flvector-ref m 1)
@@ -39,7 +39,20 @@
           (unsafe-flvector-ref m 7)
           (unsafe-flvector-ref m 8)))
 
+;; [unsafe] Must check argument first using 3x3-check
 (define (3x3-ref m r c) (flvector-ref m (+ (* r  3) c)))
+
+(define (3x3-identity? m #:tolerance [tolerance epsilon.0])
+  (3x3-check '3x3-identity? m)
+  (define-syntax-rule (0? v) (<= (flabs v) tolerance))
+  (define-syntax-rule (1? v) (<= (flabs (fl- v 1.0)) tolerance))
+  (let-values ([(m00 m01 m02 m10 m11 m12 m20 m21 m22) (3x3->values/unsafe m)])
+    (and (1? m00) (0? m01) (0? m02)
+         (0? m10) (1? m11) (0? m12)
+         (0? m20) (0? m21) (1? m22))))
+
+(define (3x3-snap-to-identity m #:tolerance [tolerance epsilon.0])
+  (if (3x3-identity? m #:tolerance tolerance) (3x3-identity) m))
 
 (define (3x3-det m)
   (3x3-check '3x3-det m)
@@ -99,7 +112,7 @@
      (fl+ (fl* ma20 mb02) (fl* ma21 mb12) (fl* ma22 mb22)))))
 
 (define (3x3-mult-columns m a b c)
-  (3x3-check '3x3*vec m)
+  (3x3-check '3x3-mult-columns m)
   (let-values
       ([(m00 m01 m02 m10 m11 m12 m20 m21 m22) (3x3->values/unsafe m)]
        [(a b c) (->fl* a b c)])

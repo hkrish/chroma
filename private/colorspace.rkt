@@ -72,13 +72,6 @@
      (define/with-syntax msg/id? (format "~a" (syntax->datum #'id?)))
      (define/with-syntax (tmp rgbm rgbmi trefw tr tg tb tx ty tz sr sg sb)
        (generate-temporaries (make-list 13 #'name)))
-     (define/with-syntax adapted
-       (syntax-parse #'refw
-         #:datum-literals (D50 D65)
-         [(quote D50) #'rgbm]
-         [(quote D65) #'(3x3* adapt-D65->D50 rgbm)]
-         [_ #'(let ([adaptm (make-chromatic-adaptation-matrix trefw 'D50)])
-                (3x3* adaptm rgbm))]))
      #'(define-values (s:id id id? id->xyz xyz->id)
          (let-values
              ([(id->xyz xyz->id)
@@ -91,7 +84,8 @@
                           [(sr sg sb) (values (xyz-x trefw) (xyz-y trefw) (xyz-z trefw))]
                           [(sr sg sb) (3x3*vec rgbmi sr sg sb)]
                           [(rgbm) (3x3-mult-columns rgbm sr sg sb)]
-                          [(rgbm) adapted])
+                          [(rgbm) (let ([adaptm (make-chromatic-adaptation-matrix trefw 'D50)])
+                                    (3x3* adaptm rgbm))])
                        (values rgbm (3x3-inverse rgbm)))])
                  (values
                   (procedure-rename

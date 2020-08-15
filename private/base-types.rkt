@@ -86,8 +86,10 @@
                      [(s1 s2 s3) (3x3*vec ca/bradford s1 s2 s3)]
                      [(d1 d2 d3) (->fl* d1 d2 d3)]
                      [(d1 d2 d3) (3x3*vec ca/bradford d1 d2 d3)])
-         (3x3* ca-inverse/bradford
-               (3x3* (3x3-diag (fl/ d1 s1) (fl/ d2 s2) (fl/ d3 s3)) ca/bradford)))])))
+         (3x3-snap-to-identity
+          (3x3* ca-inverse/bradford
+                (3x3* (3x3-diag (fl/ d1 s1) (fl/ d2 s2) (fl/ d3 s3)) ca/bradford))
+          #:tolerance 1e-10))])))
 
 ;; Some commonly used chromatic adaptation matrices
 
