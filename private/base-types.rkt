@@ -47,7 +47,7 @@
 (struct rgb-space color (r g b) #:transparent)
 
 ;; linear RGB values.
-(struct rgb/linear rgb-space (source) #:transparent)
+(struct rgb/linear rgb-space () #:transparent)
 
 (define* (xyY->xyz (xyY x y Y))
   (let ([y/Y (fl/ Y y)])
@@ -57,23 +57,22 @@
 ;; ----------------------------------------
 ;; Predefined constants
 
+;; xyz coordinates of some of the standard CIE illuminants
+(define (reference-white->xyz rw)
+  (cond
+    [(eq? 'D50 rw) (xyz 0.96422 1. 0.82521)]
+    [(eq? 'D65 rw) (xyz 0.95047 1. 1.08883)]
+    [(eq? 'D55 rw) (xyz 0.95682 1. 0.92149)]
+    [(eq? 'D75 rw) (xyz 0.94972 1. 1.22638)]
+    [(xyz? rw) rw]
+    [else (raise-argument-error 'reference-white->xyz "(or/c xyz? 'D50 'D55 'D65 'D75)" rw)]))
+
 ;; Bradford chromatic adaptation matrix
 (define ca/bradford (make-3x3 0.8951  0.2664 -0.1614
                               -0.7502  1.7135  0.0367
                               0.0389 -0.0685  1.0296))
 
 (define ca-inverse/bradford (3x3-inverse ca/bradford))
-
-;; xyz coordinates of some of the standard CIE illuminants
-(define (reference-white->xyz name)
-  (cond
-    [(eq? 'D50 name) (xyz 0.96422 1. 0.82521)]
-    [(eq? 'D55 name) (xyz 0.95682 1. 0.92149)]
-    [(eq? 'D65 name) (xyz 0.95047 1. 1.08883)]
-    [(eq? 'D75 name) (xyz 0.94972 1. 1.22638)]
-    [(eq? 'D75 name) (xyz 0.94972 1. 1.22638)]
-    [(xyz? name) name]
-    [else (raise-argument-error)]))
 
 ;; Illuminant for profile-connection-space (internally xyz is represented in 'D50)
 (define illuminant/pcs (reference-white->xyz 'D50))
