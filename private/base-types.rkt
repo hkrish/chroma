@@ -56,7 +56,11 @@
   (match v
     [(rgb-space r g b) (list (rnd r) (rnd g) (rnd b))]
     [(xyz x y z) (list (rnd x) (rnd y) (rnd z))]
-    [(xyY x y Y) (list (rnd x) (rnd y) (rnd Y))]))
+    [(xyY x y Y) (list (rnd x) (rnd y) (rnd Y))]
+    [_ (if (color? v)
+           (for/list ([c (in-list (cdr (vector->list (struct->vector v))))])
+             (rnd c))
+           (raise-argument-error 'color-printer "color?" v))]))
 
 (define color-printer
   (make-constructor-style-printer
