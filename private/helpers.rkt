@@ -11,7 +11,8 @@
     [(_ (id mclause mclauses ...) body0 body ...)
      (identifier? #'id)
      (with-syntax ([(occ ...) (generate-temporaries (syntax-e #'(mclause mclauses ...)))])
-       #'(define (id occ ...)
+       (syntax/loc stx
+         (define (id occ ...)
            (match*/derived
-            (occ ...) 'id
-            ((mclause mclauses ...) body0 body ...))))]))
+            (occ ...) (id mclause mclauses ...)
+            ((mclause mclauses ...) body0 body ...)))))]))
