@@ -1,14 +1,11 @@
 #lang racket/base
 
-(require (for-syntax racket/base
-                     racket/syntax
-                     syntax/parse
-                     math/flonum)
-         racket/match
+(require (for-syntax math/flonum
+                     racket/base)
          math/flonum
-         racket/generic
-         "./matrix3.rkt"
-         "./helpers.rkt")
+         racket/match
+         "./helpers.rkt"
+         "./matrix3.rkt")
 
 (provide (struct-out color)
          (struct-out xyz)
@@ -26,13 +23,13 @@
 ;; The naming of different color types are `color-space-type/color-profile-id'
 ;;  - color-space-types as defined by CIE (RGB, Luv, Lab, XYZ etc.) except always in
 ;;    lowercase.
-;; - color-profile-ids as defined by ICC and other standards, and various manufacturers
-;;   (sRGB, Display-P3, ProPhoto etc.) except always in lowercase.
+;;  - color-profile-ids as defined by ICC and other standards, and various manufacturers
+;;    (sRGB, Display-P3, ProPhoto etc.) except always in lowercase.
 ;;
-;; rgb is an alias for rgb/srgb. Since it is standard practice for RGB values to be
+;; TODO: explain: rgb is an alias for rgb/srgb.
 
-;; interpreted in sRGB space if no input color space is specified.
-;; Base type for all colours
+;; interpreted in sRGB space if no input color space is specified. Base type for all
+;; colours
 (struct color () #:transparent)
 
 ;; CIEXYZ color space
@@ -42,8 +39,8 @@
 (struct xyY color (x y Y) #:transparent
   #:guard (lambda (x y Y name) (values (fl x) (fl y) (fl Y))))
 
-;; Base type for RGB input spaces. Derived types are typically companded with a
-;; per-channel tone reproduction curve
+;; Base type for RGB input spaces. Derived types are typically companded with
+;; a per-channel tone reproduction curve
 (struct rgb-space color (r g b) #:transparent)
 
 ;; linear RGB values.
