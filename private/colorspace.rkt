@@ -84,7 +84,9 @@
                           [(sr sg sb) (values (xyz-x trefw) (xyz-y trefw) (xyz-z trefw))]
                           [(sr sg sb) (3x3*vec rgbmi sr sg sb)]
                           [(rgbm) (3x3-mult-columns rgbm sr sg sb)]
-                          [(rgbm) (let ([adaptm (make-chromatic-adaptation-matrix trefw 'D50)])
+                          [(rgbm) (let ([adaptm (make-chromatic-adaptation-matrix
+                                                 trefw
+                                                 illuminant/pcs)])
                                     (3x3* adaptm rgbm))])
                        (values rgbm (3x3-inverse rgbm)))])
                  (values

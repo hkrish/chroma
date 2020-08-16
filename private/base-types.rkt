@@ -57,7 +57,7 @@
 ;; xyz coordinates of some of the standard CIE illuminants
 (define (reference-white->xyz rw)
   (cond
-    [(eq? 'D50 rw) (xyz 0.96422 1. 0.82521)]
+    [(eq? 'D50 rw) (xyz 0.96420 1. 0.82491)]
     [(eq? 'D65 rw) (xyz 0.95047 1. 1.08883)]
     [(eq? 'D55 rw) (xyz 0.95682 1. 0.92149)]
     [(eq? 'D75 rw) (xyz 0.94972 1. 1.22638)]
