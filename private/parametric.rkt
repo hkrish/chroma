@@ -17,8 +17,8 @@
 (define-syntax-rule (norm/clamp a) (let ([a (fl/ (fl a) 255.)]) (clamp a)))
 
 (define-syntax-rule (unnorm/clamp a)
-  (let ([a (fl* (cond [(fl< a 0.0) 0.0] [(fl> a 1.0) 1.0] [else a]) 255.0)])
-    (inexact->exact (floor a))))
+  (let ([a (round (fl* a 255.0))])
+    (inexact->exact (cond [(fl< a 0.0) 0.0] [(fl> a 255.0) 255.0] [else a]))))
 
 (define-syntax-parameter _component #f)
 

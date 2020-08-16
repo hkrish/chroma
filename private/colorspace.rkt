@@ -4,18 +4,19 @@
                      racket/list
                      racket/syntax
                      syntax/parse)
+         racket/splicing
          racket/unsafe/ops
          "./base-types.rkt"
          "./matrix3.rkt"
          "./parametric.rkt")
 
 (provide define-rgb-colorspace
-         prop:rgb<->xyz rgb<->xyz? rgb<->xyz-ref
+         prop:rgb->xyz rgb->xyz? rgb->xyz-ref
          prop:reference-white reference-white? reference-white-ref)
 
 
-(define-values (prop:rgb<->xyz rgb<->xyz? rgb<->xyz-ref)
-  (make-struct-type-property 'rgb<->xyz))
+(define-values (prop:rgb->xyz rgb->xyz? rgb->xyz-ref)
+  (make-struct-type-property 'rgb->xyz))
 
 (define-values (prop:reference-white reference-white? reference-white-ref)
   (make-struct-type-property 'reference-white))
@@ -72,51 +73,42 @@
      (define/with-syntax msg/id? (format "~a" (syntax->datum #'id?)))
      (define/with-syntax (tmp rgbm rgbmi trefw tr tg tb tx ty tz sr sg sb)
        (generate-temporaries (make-list 13 #'name)))
-     #'(define-values (s:id id id? id->xyz xyz->id)
-         (let-values
-             ([(id->xyz xyz->id)
-               (let-values
-                   ([(rgbm rgbmi)
-                     (let*-values
-                         ([(trefw) (reference-white->xyz refw)]
-                          [(rgbm) (primaries->matrix rp gp bp)]
-                          [(rgbmi) (3x3-inverse rgbm)]
-                          [(sr sg sb) (values (xyz-x trefw) (xyz-y trefw) (xyz-z trefw))]
-                          [(sr sg sb) (3x3*vec rgbmi sr sg sb)]
-                          [(rgbm) (3x3-mult-columns rgbm sr sg sb)]
-                          [(rgbm) (let ([adaptm (make-chromatic-adaptation-matrix
-                                                 trefw
-                                                 illuminant/pcs)])
-                                    (3x3* adaptm rgbm))])
-                       (values rgbm (3x3-inverse rgbm)))])
-                 (values
-                  (procedure-rename
-                   (lambda (tmp)
-                     (if (id? tmp)
-                         (let ([tr (unsafe-struct-ref tmp 0)]
-                               [tg (unsafe-struct-ref tmp 1)]
-                               [tb (unsafe-struct-ref tmp 2)])
-                           (let*-values
-                               ([(tr tg tb) (expand-trc-func (tr tg tb trc-args ...))]
-                                [(tx ty tz) (3x3*vec rgbm tr tg tb)])
-                             (xyz tx ty tz)))
-                         (raise-argument-error 'id->xyz msg/id? tmp)))
-                   'id->xyz)
-                  (procedure-rename
-                   (lambda (tmp)
-                     (if (xyz? tmp)
-                         (let ([tx (unsafe-struct-ref tmp 0)]
-                               [ty (unsafe-struct-ref tmp 1)]
-                               [tz (unsafe-struct-ref tmp 2)])
-                           (let*-values
-                               ([(tr tg tb) (3x3*vec rgbmi tx ty tz)]
-                                [(tr tg tb) (expand-trc-inverse-func (tr tg tb trc-args ...))])
-                             (id tr tg tb)))
-                         (raise-argument-error 'xyz->id "xyz?" tmp)))
-                   'xyz->id)))])
+     #'(splicing-let-values
+           ([(rgbm rgbmi)
+             (let*-values
+                 ([(trefw) (reference-white->xyz refw)]
+                  [(rgbm) (primaries->matrix rp gp bp)]
+                  [(rgbmi) (3x3-inverse rgbm)]
+                  [(sr sg sb) (values (xyz-x trefw) (xyz-y trefw) (xyz-z trefw))]
+                  [(sr sg sb) (3x3*vec rgbmi sr sg sb)]
+                  [(rgbm) (3x3-mult-columns rgbm sr sg sb)]
+                  [(rgbm) (let ([adaptm (make-chromatic-adaptation-matrix
+                                         trefw
+                                         illuminant/pcs)])
+                            (3x3* adaptm rgbm))])
+               (values rgbm (3x3-inverse rgbm)))])
+         (define (id->xyz tmp)
+           (if (id? tmp)
+               (let ([tr (unsafe-struct-ref tmp 0)]
+                     [tg (unsafe-struct-ref tmp 1)]
+                     [tb (unsafe-struct-ref tmp 2)])
+                 (let*-values
+                     ([(tr tg tb) (expand-trc-func (tr tg tb trc-args ...))]
+                      [(tx ty tz) (3x3*vec rgbm tr tg tb)])
+                   (xyz tx ty tz)))
+               (raise-argument-error 'id->xyz msg/id? tmp)))
 
-           (struct id rgb-space () #:transparent
-             #:property prop:reference-white (reference-white->xyz refw)
-             #:property prop:rgb<->xyz (list id->xyz xyz->id))
+         (struct id rgb-space () #:transparent
+           #:property prop:reference-white (reference-white->xyz refw)
+           #:property prop:rgb->xyz id->xyz)
 
-           (values s:id id id? id->xyz xyz->id)))]))
+         (define (xyz->id tmp)
+           (if (xyz? tmp)
+               (let ([tx (unsafe-struct-ref tmp 0)]
+                     [ty (unsafe-struct-ref tmp 1)]
+                     [tz (unsafe-struct-ref tmp 2)])
+                 (let*-values
+                     ([(tr tg tb) (3x3*vec rgbmi tx ty tz)]
+                      [(tr tg tb) (expand-trc-inverse-func (tr tg tb trc-args ...))])
+                   (id tr tg tb)))
+               (raise-argument-error 'xyz->id "xyz?" tmp))))]))
