@@ -101,8 +101,11 @@
     (xyz (fl* y/Y x) Y (fl* y/Y (fl- 1.0 x y)))))
 
 (define* (xyz->xyY (xyz x y z))
-  (let ([c (fl/ 1.0 (fl+ x y z))])
-    (xyY (fl* c x) (fl* c y) (fl- 1.0 x y))))
+  (let ([x (fl x)]
+        [y (fl y)]
+        [z (fl z)])
+    (let ([c (fl/ 1.0 (fl+ x y z))])
+      (xyY (fl* c x) (fl* c y) (fl- 1.0 x y)))))
 
 
 ;; ----------------------------------------
