@@ -1,8 +1,8 @@
 #lang info
 (define collection "chroma")
+(define pkg-desc "Library for working with colors, color palettes, and color space conversion.")
 (define deps '("base"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib"))
 (define scribblings '(("scribblings/chroma.scrbl" ())))
-(define pkg-desc "Description Here")
-(define version "0.0")
+(define version "0.5")
 (define pkg-authors '(hkrish))
