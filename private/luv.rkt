@@ -7,10 +7,6 @@
 
 (provide (all-defined-out))
 
-(struct luv color (l u v)
-  #:transparent
-  #:methods gen:custom-write
-  [(define write-proc color-printer)])
 
 (define* (xyz->luv (xyz x y z))
   (let* ([Xr (unsafe-struct-ref illuminant/pcs 0)]
@@ -53,3 +49,9 @@
          [x (fl/ (fl- d b) (fl- a (fl/ -1. 3.)))]
          [z (fl+ (fl* x a) b)])
     (xyz x y z)))
+
+(struct luv color (l u v)
+  #:transparent
+  #:property prop:color->xyz luv->xyz
+  #:methods gen:custom-write
+  [(define write-proc color-printer)])

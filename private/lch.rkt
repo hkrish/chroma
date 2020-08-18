@@ -19,14 +19,6 @@
 ;; To convert between LCHuv and LCHab we need to go through the profile connection space
 ;; (XYZ). See conversions.rkt
 
-(struct lch color (l c h)
-  #:transparent
-  #:methods gen:custom-write
-  [(define write-proc color-printer)])
-
-(struct lch/ab lch ()
-  #:transparent)
-
 (define* (luv->lch (luv l u v))
   (let* ([l (fl l)]
          [u (fl u)]
@@ -58,3 +50,13 @@
 (define (lch/ab->xyz c) (lab->xyz (lch/ab->lab c)))
 
 (define (xyz->lch/ab c) (lab->lch/ab (xyz->lab c)))
+
+(struct lch color (l c h)
+  #:transparent
+  #:property prop:color->xyz lch->xyz
+  #:methods gen:custom-write
+  [(define write-proc color-printer)])
+
+(struct lch/ab lch ()
+  #:property prop:color->xyz lch/ab->xyz
+  #:transparent)

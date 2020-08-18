@@ -12,9 +12,10 @@
          (struct-out xyz)
          (struct-out xyY)
          (struct-out rgb-space)
-         (struct-out rgb/linear)
          xyY->xyz
          xyz->xyY
+         prop:color->xyz color->xyz? color->xyz-ref
+         color->xyz
          illuminant/pcs
          reference-white->xyz
          ca/bradford
@@ -71,19 +72,35 @@
 ;; ----------------------------------------
 ;; Definitions
 
+(define-values (prop:color->xyz color->xyz? color->xyz-ref)
+  (make-struct-type-property 'color->xyz))
+
 ;; interpreted in sRGB space if no input color space is specified. Base type for all
 ;; colours
 (struct color () #:transparent)
 
 ;; CIEXYZ color space
 (struct xyz color (x y z) #:transparent
+  #:property prop:color->xyz (lambda (x) x)
   #:methods gen:custom-write
   [(define write-proc color-printer)])
+
+(define* (xyz->xyY (xyz x y z))
+  (let ([x (fl x)]
+        [y (fl y)]
+        [z (fl z)])
+    (let ([c (fl/ 1.0 (fl+ x y z))])
+      (xyY (fl* c x) (fl* c y) (fl- 1.0 x y)))))
+
+(define* (xyY->xyz (xyY x y Y))
+  (let ([y/Y (fl/ Y y)])
+    (xyz (fl* y/Y x) Y (fl* y/Y (fl- 1.0 x y)))))
 
 ;; CIExyY colorspace. Y is the same Y as in XYZ.
 ;; Commonly used in specifications.
 (struct xyY color (x y Y) #:transparent
   #:guard (lambda (x y Y name) (values (fl x) (fl y) (fl Y)))
+  #:property prop:color->xyz xyY->xyz
   #:methods gen:custom-write
   [(define write-proc color-printer)])
 
@@ -93,19 +110,12 @@
   #:methods gen:custom-write
   [(define write-proc color-printer)])
 
-;; linear RGB values.
-(struct rgb/linear rgb-space () #:transparent)
-
-(define* (xyY->xyz (xyY x y Y))
-  (let ([y/Y (fl/ Y y)])
-    (xyz (fl* y/Y x) Y (fl* y/Y (fl- 1.0 x y)))))
-
-(define* (xyz->xyY (xyz x y z))
-  (let ([x (fl x)]
-        [y (fl y)]
-        [z (fl z)])
-    (let ([c (fl/ 1.0 (fl+ x y z))])
-      (xyY (fl* c x) (fl* c y) (fl- 1.0 x y)))))
+;; Generic rgb->xyz function.
+(define (color->xyz r)
+  (cond
+    [(color->xyz? r) ((color->xyz-ref r) r)]
+    [else
+     (raise-argument-error 'color->xyz "colorspace with `color->xyz' property" r)]))
 
 
 ;; ----------------------------------------
@@ -114,11 +124,12 @@
 ;; xyz coordinates of some of the standard CIE illuminants
 (define (reference-white->xyz rw)
   (cond
-    [(eq? 'D50 rw) (xyz 0.96420 1. 0.82491)]
+    [(eq? 'D50 rw) (xyz 0.96420 1. 0.82491)] ;; (xyz 0.96422 1. 0.82521)
     [(eq? 'D65 rw) (xyz 0.95047 1. 1.08883)]
     [(eq? 'D55 rw) (xyz 0.95682 1. 0.92149)]
     [(eq? 'D75 rw) (xyz 0.94972 1. 1.22638)]
-    [(xyz? rw) rw]
+    [(eq? 'C rw)   (xyz 0.98074 1. 1.18232)]
+    [(xyz? rw)     rw]
     [else (raise-argument-error 'reference-white->xyz "(or/c xyz? 'D50 'D55 'D65 'D75)" rw)]))
 
 ;; Bradford chromatic adaptation matrix

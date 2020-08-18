@@ -11,12 +11,8 @@
          "./parametric.rkt")
 
 (provide define-rgb-colorspace
-         prop:rgb->xyz rgb->xyz? rgb->xyz-ref
          prop:reference-white reference-white? reference-white-ref)
 
-
-(define-values (prop:rgb->xyz rgb->xyz? rgb->xyz-ref)
-  (make-struct-type-property 'rgb->xyz))
 
 (define-values (prop:reference-white reference-white? reference-white-ref)
   (make-struct-type-property 'reference-white))
@@ -100,7 +96,7 @@
 
          (struct id rgb-space () #:transparent
            #:property prop:reference-white (reference-white->xyz refw)
-           #:property prop:rgb->xyz id->xyz)
+           #:property prop:color->xyz id->xyz)
 
          (define (xyz->id tmp)
            (if (xyz? tmp)

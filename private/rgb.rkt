@@ -8,11 +8,11 @@
          (struct-out rgb/prophoto) rgb/prophoto->xyz xyz->rgb/prophoto
          (struct-out rgb/adobe) rgb/adobe->xyz xyz->rgb/adobe
          (struct-out rgb/rec2020) rgb/rec2020->xyz xyz->rgb/rec2020
-         rgb->xyz
          (rename-out [rgb/srgb rgb]
                      [rgb/srgb? rgb?]
                      [struct:rgb/srgb struct:rgb]
                      [xyz->rgb/srgb xyz->rgb]
+                     [color->xyz rgb->xyz]
                      [rgb-space-r rgb-r]
                      [rgb-space-g rgb-g]
                      [rgb-space-b rgb-b]))
@@ -59,10 +59,3 @@
   #:green-primary (xyY 0.170 0.797 1.)
   #:blue-primary (xyY 0.131 0.046 1.)
   #:trc (2.4))
-
-;; Generic rgb->xyz function.
-(define (rgb->xyz r)
-  (cond
-    [(rgb->xyz? r) ((rgb->xyz-ref r) r)]
-    [else
-     (raise-argument-error 'rgb->xyz "rgb-colorspace with `rgb->xyz' property" r)]))

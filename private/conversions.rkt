@@ -10,6 +10,10 @@
          "./lab.rkt"
          "./lch.rkt")
 
+(provide (except-out (all-defined-out)
+                     define-color->pcs->color
+                     define-color->color/table))
+
 
 (define-syntax (define-color->pcs->color stx)
   (syntax-parse stx
@@ -20,17 +24,6 @@
           [src->pcs (format-id #'srctype "~a->xyz" #'srctype)]
           [pcs->dst (format-id #'dsttype "xyz->~a" #'dsttype)])
        #'(define (name tmp) (pcs->dst (src->pcs tmp))))]))
-
-
-(define-syntax (define-color->color/table/1 stx)
-  (syntax-parse stx
-    [(_ clr:id ...)
-     (with-syntax ([((fro to) ...) (combinations (syntax->list #'(clr ...)) 2)])
-       #'(begin
-           (define-color->pcs->color fro to)
-           ...
-           (define-color->pcs->color to fro)
-           ...))]))
 
 (define-syntax (define-color->color/table stx)
   (syntax-parse stx
@@ -44,9 +37,8 @@
              (define-color->pcs->color fro to)
              ...)))]))
 
-;; Generic rgb to other spaces. Accepts any rgb type defined with define-rgb-colorspace
-(define-color->color/table (rgb)
-  (rgb/srgb rgb/display-p3 rgb/prophoto rgb/rec2020 rgb/adobe luv lch lab lch/ab))
+;; Generic color to other colorspace conversion. Accepts any color type with
+;; prop:color->xyz property
 
-(define-color->color/table (luv lch lab lch/ab)
-  (rgb rgb/srgb rgb/display-p3 rgb/prophoto rgb/rec2020 rgb/adobe))
+(define-color->color/table (color)
+  (rgb rgb/srgb rgb/display-p3 rgb/prophoto rgb/rec2020 rgb/adobe luv lch lab lch/ab))

@@ -7,10 +7,6 @@
 
 (provide (all-defined-out))
 
-(struct lab color (l a b)
-  #:transparent
-  #:methods gen:custom-write
-  [(define write-proc color-printer)])
 
 (define* (xyz->lab (xyz x y z))
   (let* ([Xr (unsafe-struct-ref illuminant/pcs 0)]
@@ -56,3 +52,9 @@
                  fz3
                  (fl/ (fl- (fl* 116. fz) 16.) k))])
     (xyz (fl* xr Xr) (fl* yr Yr) (fl* zr Zr))))
+
+(struct lab color (l a b)
+  #:transparent
+  #:property prop:color->xyz lab->xyz
+  #:methods gen:custom-write
+  [(define write-proc color-printer)])
