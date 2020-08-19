@@ -2,11 +2,12 @@
 
 (require (for-syntax racket/base
                      racket/match)
+         math/flonum
          racket/match
          racket/pretty
          racket/string)
 
-(provide define* dbg)
+(provide define* dbg clamp norm/clamp unnorm/clamp flremainder flmodulo)
 
 (define-syntax (define* stx)
   (syntax-case stx ()
@@ -32,3 +33,27 @@
            (let ([lines (map (lambda (r) (pretty-format r #:mode 'print)) res)])
              (string-join lines "     \n" #:before-first "  -> ")))
           (apply values res)))]))
+
+(define (clamp a)
+  (if (fl< a 0.) 0. (if (fl> a 1.) 1. a)))
+
+(define (norm/clamp a)
+  (let* ([a (fl/ (fl a) 255.)])
+    (clamp a)))
+
+(define (unnorm/clamp a)
+  (let* ([a (round (fl* a 255.0))])
+    (inexact->exact (cond [(fl< a 0.0) 0.0] [(fl> a 255.0) 255.0] [else a]))))
+
+;; Racket's `remainder' operation extended to flonum.
+;; Sign of the result is the same as the divident (first argument)
+;; Similar to C99, C++, JavaScript '%' operator
+(define (flremainder a n)
+  (let ([a (fl a)] [n (fl n)])
+    (fl- a (fl* n (fltruncate (fl/ a n))))))
+
+;; Racket's `modulo' operation extended to flonum.
+;; Sign of the result is the same as the divisor (second argument)
+(define (flmodulo a n)
+  (let ([a (fl a)] [n (fl n)])
+    (fl- a (fl* n (flfloor (fl/ a n))))))
