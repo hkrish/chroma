@@ -1,16 +1,16 @@
 #lang racket/base
 
 (require pict
-         racket/draw
-         racket/contract
-         racket/match
-         racket/list
          racket/class
+         racket/contract
+         racket/draw
+         racket/list
          "./base-types.rkt"
          "./conversions.rkt"
-         "./helpers.rkt"
-         "./rgb.rkt"
          "./palette.rkt")
+
+(provide (all-defined-out))
+
 
 (define color->current-display-color-space
   (make-parameter
