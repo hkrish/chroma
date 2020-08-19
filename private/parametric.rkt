@@ -8,9 +8,6 @@
 
 (provide expand-trc-func expand-trc-inverse-func)
 
-;; Various procedures to linearize RGB space according to parametric curve types defined
-;; in the standard ICC.1:2010 (Profile version 4.3.0.0)
-;; http://www.color.org/specification/ICC1v43_2010-12.pdf (pages 69, 70)
 
 (define-syntax-rule (clamp a) (if (fl< a 0.) 0. (if (fl> a 1.) 1. a)))
 
@@ -19,6 +16,9 @@
 (define-syntax-rule (unnorm/clamp a)
   (let ([a (round (fl* a 255.0))])
     (inexact->exact (cond [(fl< a 0.0) 0.0] [(fl> a 255.0) 255.0] [else a]))))
+;; Various procedures to linearize RGB color-space according to parametric curve types
+;; defined in the standard ICC.1:2010 (Profile version
+;; 4.3.0.0) http://www.color.org/specification/ICC1v43_2010-12.pdf (pages 69, 70)
 
 (define-syntax-parameter _component #f)
 

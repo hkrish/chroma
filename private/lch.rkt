@@ -11,8 +11,8 @@
 (provide (all-defined-out))
 
 ;; LCH comes in two varieties
-;;  - LCHuv is a cylidrical transformation of Luv colorspace
-;;  - LCHab is a cylidrical transformation of Lab colorspace
+;;  - LCHuv is a cylidrical transformation of Luv color-space
+;;  - LCHab is a cylidrical transformation of Lab color-space
 ;;
 ;; In chroma, LCHuv is refered to as lch. And LCHab is a derived struct type lch/ab.
 ;;

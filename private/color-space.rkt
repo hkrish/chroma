@@ -10,7 +10,7 @@
          "./matrix3.rkt"
          "./parametric.rkt")
 
-(provide define-rgb-colorspace
+(provide define-rgb-color-space
          prop:reference-white reference-white? reference-white-ref)
 
 
@@ -26,7 +26,7 @@
                 (let ([Y/y (/ Y y)])
                   (values (* x Y/y) Y (* (- 1. x y) Y/y))))]
     [else (raise-argument-error
-           'define-rgb-colorspace (format "(or/c xyz? xyY?) for option `~a'" name) p)]))
+           'define-rgb-color-space (format "(or/c xyz? xyY?) for option `~a'" name) p)]))
 
 (define (primaries->matrix rp gp bp)
   (let-values
@@ -46,7 +46,7 @@
       [_ #f])))
 
 ;; TODO: Docs
-(define-syntax (define-rgb-colorspace stx)
+(define-syntax (define-rgb-color-space stx)
   (syntax-parse stx
     [(_ name:id
         (~alt (~once (~optional (~seq #:reference-white refw:expr) #:defaults ([refw #''D65])))
@@ -58,7 +58,7 @@
         ...)
      (unless (check-trc #'(trc-args ...))
        (raise-syntax-error
-        'define-rgb-colorspace
+        'define-rgb-color-space
         "unknown icc tone reproduction curve type.\n  expected: 1, 3, 4, 5, or 7 arguments"
         stx #'(trc-args ...)))
      (define/with-syntax id (format-id #'name "rgb/~a" #'name))

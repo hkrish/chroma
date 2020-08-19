@@ -37,7 +37,7 @@
              (define-color->pcs->color fro to)
              ...)))]))
 
-;; Generic color to other colorspace conversion. Accepts any color type with
+;; Generic color to other color spaces conversion. Accepts any color type with
 ;; prop:color->xyz property
 
 (define-color->color/table (color)

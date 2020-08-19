@@ -96,7 +96,7 @@
   (let ([y/Y (fl/ Y y)])
     (xyz (fl* y/Y x) Y (fl* y/Y (fl- 1.0 x y)))))
 
-;; CIExyY colorspace. Y is the same Y as in XYZ.
+;; CIExyY color-space. Y is the same Y as in XYZ.
 ;; Commonly used in specifications.
 (struct xyY color (x y Y) #:transparent
   #:guard (lambda (x y Y name) (values (fl x) (fl y) (fl Y)))
@@ -115,7 +115,7 @@
   (cond
     [(color->xyz? r) ((color->xyz-ref r) r)]
     [else
-     (raise-argument-error 'color->xyz "colorspace with `color->xyz' property" r)]))
+     (raise-argument-error 'color->xyz "color-space with `color->xyz' property" r)]))
 
 
 ;; ----------------------------------------
@@ -169,5 +169,3 @@
 (define* (xyz/D65->xyz/D50 (xyz x y z))
   (let-values ([(x y z) (3x3*vec adapt-D65->D50 x y z)])
     (xyz x y z)))
-
-
