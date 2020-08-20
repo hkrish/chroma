@@ -1,14 +1,14 @@
 #lang racket/base
 
 (require (for-syntax racket/base
-                     racket/syntax
                      racket/list
+                     racket/syntax
                      syntax/parse)
          "./base-types.rkt"
-         "./rgb.rkt"
-         "./luv.rkt"
          "./lab.rkt"
-         "./lch.rkt")
+         "./lch.rkt"
+         "./luv.rkt"
+         "./rgb.rkt")
 
 (provide (except-out (all-defined-out)
                      define-color->pcs->color

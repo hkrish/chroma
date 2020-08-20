@@ -11,22 +11,13 @@
 
 (provide (all-defined-out))
 
-
-(define color->current-display-color-space
-  (make-parameter
-   color->rgb/srgb
-   (lambda (cp)
-     (if (procedure-arity-includes? cp 1)
-         cp
-         (raise-argument-error 'color->current-display-color-space "procedure of arity 1" cp)))))
-
 (define (->color% c)
   (unless (color? c) (raise-argument-error '->color% "color?" c))
-  (let ([c ((color->current-display-color-space) c)])
+  (let ([c ((cdr (current-display-color-space)) c)])
     (unless (rgb-space? c)
       (raise-argument-error
        '->color%
-       "(color->current-display-color-space) should produce a rgb color"
+       "(cadr (current-display-color-space-info)) should produce a rgb color"
        c))
     (make-color (rgb-space-r c) (rgb-space-g c) (rgb-space-b c))))
 

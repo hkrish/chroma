@@ -7,7 +7,7 @@
          racket/pretty
          racket/string)
 
-(provide define* dbg clamp norm/clamp unnorm/clamp flremainder flmodulo)
+(provide define* dbg clamp clamp255 norm/clamp unnorm/clamp flremainder flmodulo)
 
 (define-syntax (define* stx)
   (syntax-case stx ()
@@ -37,13 +37,16 @@
 (define (clamp a)
   (if (fl< a 0.) 0. (if (fl> a 1.) 1. a)))
 
+(define (clamp255 a)
+  (if (< a 0) 0 (if (> a 255) 255 a)))
+
 (define (norm/clamp a)
   (let* ([a (fl/ (fl a) 255.)])
     (clamp a)))
 
 (define (unnorm/clamp a)
-  (let* ([a (round (fl* a 255.0))])
-    (inexact->exact (cond [(fl< a 0.0) 0.0] [(fl> a 255.0) 255.0] [else a]))))
+  (let* ([a (inexact->exact (round (fl* a 255.0)))])
+    (clamp255 a)))
 
 ;; Racket's `remainder' operation extended to flonum.
 ;; Sign of the result is the same as the divident (first argument)

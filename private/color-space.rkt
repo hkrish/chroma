@@ -10,12 +10,8 @@
          "./matrix3.rkt"
          "./parametric.rkt")
 
-(provide define-rgb-color-space
-         prop:reference-white reference-white? reference-white-ref)
+(provide define-rgb-color-space)
 
-
-(define-values (prop:reference-white reference-white? reference-white-ref)
-  (make-struct-type-property 'reference-white))
 
 (define-syntax-rule (prim->xyz name p)
   (cond
@@ -82,7 +78,9 @@
                                          trefw
                                          illuminant/pcs)])
                             (3x3* adaptm rgbm))])
-               (values rgbm (3x3-inverse rgbm)))])
+               (values rgbm (3x3-inverse rgbm)))]
+            [(trc-proc) (lambda (r g b) (expand-trc-func (r g b trc-args ...)))]
+            [(trc-inverse-proc) (lambda (r g b) (expand-trc-inverse-func (r g b trc-args ...)))])
          (define (id->xyz tmp)
            (if (id? tmp)
                (let ([tr (unsafe-struct-ref tmp 0)]
@@ -94,10 +92,6 @@
                    (xyz tx ty tz)))
                (raise-argument-error 'id->xyz msg/id? tmp)))
 
-         (struct id rgb-space () #:transparent
-           #:property prop:reference-white (reference-white->xyz refw)
-           #:property prop:color->xyz id->xyz)
-
          (define (xyz->id tmp)
            (if (xyz? tmp)
                (let ([tx (unsafe-struct-ref tmp 0)]
@@ -107,4 +101,11 @@
                      ([(tr tg tb) (3x3*vec rgbmi tx ty tz)]
                       [(tr tg tb) (expand-trc-inverse-func (tr tg tb trc-args ...))])
                    (id tr tg tb)))
-               (raise-argument-error 'xyz->id "xyz?" tmp))))]))
+               (raise-argument-error 'xyz->id "xyz?" tmp)))
+
+         (struct id rgb-space () #:transparent
+           #:property prop:reference-white (reference-white->xyz refw)
+           #:property prop:rgb->xyz:matrix rgbm
+           #:property prop:trc-procedures (cons trc-proc trc-inverse-proc)
+           #:property prop:color->xyz id->xyz
+           #:property prop:xyz->color xyz->id))]))

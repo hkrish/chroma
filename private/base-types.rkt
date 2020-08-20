@@ -14,7 +14,11 @@
          (struct-out rgb-space)
          xyY->xyz
          xyz->xyY
+         prop:reference-white reference-white? reference-white-ref
          prop:color->xyz color->xyz? color->xyz-ref
+         prop:xyz->color xyz->color? xyz->color-ref
+         prop:rgb->xyz:matrix rgb->xyz:matrix? rgb->xyz:matrix-ref
+         prop:trc-procedures trc-procedures? trc-procedures-ref
          color->xyz
          illuminant/pcs
          reference-white->xyz
@@ -26,7 +30,8 @@
          xyz/D65->xyz/D50
          xyz/D50->xyz/D65
          current-color-print-round-places
-         color-printer)
+         color-printer
+         current-display-color-space)
 
 ;; The naming of different color types are `color-space-type/color-profile-id'
 ;;  - color-space-types as defined by CIE (RGB, Luv, Lab, XYZ etc.) except always in
@@ -72,8 +77,20 @@
 ;; ----------------------------------------
 ;; Definitions
 
+(define-values (prop:reference-white reference-white? reference-white-ref)
+  (make-struct-type-property 'reference-white))
+
 (define-values (prop:color->xyz color->xyz? color->xyz-ref)
   (make-struct-type-property 'color->xyz))
+
+(define-values (prop:xyz->color xyz->color? xyz->color-ref)
+  (make-struct-type-property 'xyz->color))
+
+(define-values (prop:rgb->xyz:matrix rgb->xyz:matrix? rgb->xyz:matrix-ref)
+  (make-struct-type-property 'rgb->xyz:matrix))
+
+(define-values (prop:trc-procedures trc-procedures? trc-procedures-ref)
+  (make-struct-type-property 'trc-procedures))
 
 ;; interpreted in sRGB space if no input color space is specified. Base type for all
 ;; colours
@@ -169,3 +186,55 @@
 (define* (xyz/D65->xyz/D50 (xyz x y z))
   (let-values ([(x y z) (3x3*vec adapt-D65->D50 x y z)])
     (xyz x y z)))
+
+
+;; For some procedures that generate and use colors such as palette generation, drawing
+;; etc. select a target RGB color-space as the display color-space. The initial value is
+;; set in the main module.
+;;
+;; The parameter's value is a pair of:
+;; - struct-constructor-procedure? used to create colors in the target RGB space
+;; - a procedure to convert colors to the target RGB space
+;;
+;; When setting the parameter, only the struct-constructor-procedure? needs to be given,
+;; the conversion function (second element in the pair) is automatically inferred.
+(define current-display-color-space
+  (make-parameter
+   #f
+   (lambda (make-rgb)
+     (unless (struct-constructor-procedure? make-rgb)
+       (raise-argument-error 'current-display-color-space
+                             "struct-constructor-procedure?"
+                             make-rgb))
+     ;; Checking the necessary properties involves creating an instance of the rgb-space
+     (define a-display-color (make-rgb 0 0 0))
+     (unless (rgb-space? a-display-color)
+       (raise-argument-error
+        'current-display-color-space
+        (format "procedure should produce a value that is rgb-space?\n~a~a"
+                "  produced value:" a-display-color)
+        make-rgb))
+     (unless (rgb->xyz:matrix? a-display-color)
+       (raise-argument-error
+        'current-display-color-space
+        (format
+         "procedure should produce a value that has rgb->xyz:matrix struct type property\n~a~a"
+         "  produced value:" a-display-color)
+        make-rgb))
+     (unless (trc-procedures? a-display-color)
+       (raise-argument-error
+        'current-display-color-space
+        (format
+         "procedure should produce a value that has prop:trc-procedures struct type property\n~a~a"
+         "  produced value:" a-display-color)
+        make-rgb))
+     (unless (xyz->color? a-display-color)
+       (raise-argument-error
+        'current-display-color-space
+        (format
+         "procedure should produce a value that has prop:xyz->color struct type property\n~a~a"
+         "  produced value:" a-display-color)
+        make-rgb))
+     (cons make-rgb
+           (let ([xyz->display-rgb (xyz->color-ref a-display-color)])
+             (lambda (c) (xyz->display-rgb (color->xyz c))))))))

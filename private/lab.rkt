@@ -1,9 +1,9 @@
 #lang racket/base
 
-(require "./base-types.rkt"
-         "./helpers.rkt"
+(require math/flonum
          racket/unsafe/ops
-         math/flonum)
+         "./base-types.rkt"
+         "./helpers.rkt")
 
 (provide (all-defined-out))
 
