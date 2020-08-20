@@ -26,23 +26,23 @@
                               #:corner-radius [cr #f]
                               #:border-color [bc #f]
                               #:border-width [bw #f])
-  (->* (color?) (#:size (or/c real? (list/c real? real?))
+  (->* (color?) (#:size (or/c real? (cons/c real? real?))
                  #:corner-radius (or/c #f real?)
                  #:border-color (or/c #f color?)
                  #:border-width (or/c #f real?))
        pict?)
-  (let ([wh (if (pair? wh) wh (list wh wh))]
+  (let ([wh (if (pair? wh) wh (cons wh wh))]
         [db? (or bc bw)]
         [bc (and bc (->color% bc))]
         [ins (if bw (/ bw 2.0) 0.0)])
     (inset
      (if cr
-         (filled-rounded-rectangle (car wh) (cadr wh) cr
+         (filled-rounded-rectangle (car wh) (cdr wh) cr
                                    #:color (->color% c)
                                    #:draw-border? db?
                                    #:border-color bc
                                    #:border-width bw)
-         (filled-rectangle (car wh) (cadr wh)
+         (filled-rectangle (car wh) (cdr wh)
                            #:color (->color% c)
                            #:draw-border? db?
                            #:border-color bc
@@ -60,19 +60,19 @@
                                    #:border-width [bw #f])
   (->* ((listof color?)) (#:max-width (or/c #f (and/c (>/c 0) real?))
                           #:swatches-per-row (or/c #f (integer-in 1 #f))
-                          #:swatch-size (or/c real? (list/c real? real?))
-                          #:spacing (or/c real? (list/c (or/c #f real?) (or/c #f real?)))
+                          #:swatch-size (or/c real? (cons/c real? real?))
+                          #:spacing (or/c real? (cons/c (or/c #f real?) (or/c #f real?)))
                           #:background (or/c #f color?)
                           #:corner-radius (or/c #f real?)
                           #:border-color (or/c #f color?)
                           #:border-width (or/c #f real?))
        pict?)
   (let*-values
-      ([(w h) (if (pair? wh) (values (car wh) (cadr wh)) (values wh wh))]
+      ([(w h) (if (pair? wh) (values (car wh) (cdr wh)) (values wh wh))]
        [(ncls) (length cls)]
        [(bw_) (if bw (/ bw -2.0) 0)]
        [(spcx spcy) (cond
-                      [(pair? spc) (values (car spc) (cadr spc))]
+                      [(pair? spc) (values (car spc) (cdr spc))]
                       [spc (values spc spc)]
                       [else (values bw_ bw_)])]
        [(sw/row/spr) (if spr spr ncls)]
@@ -93,9 +93,9 @@
                                              (values sws '()))])
                   (cons (apply ht-append spcx row) (loop left)))])))))
 
-(define/contract (draw-palette plt width height)
+(define/contract (draw-palette/continuous plt width height)
   (-> (procedure-arity-includes/c 1) (integer-in 1 #f) (integer-in 1 #f) pict?)
-  (let ([cls (map ->color% (quantize plt width))])
+  (let ([cls (map ->color% (palette-quantize plt width))])
     (dc
      (lambda (dc dx dy)
        (define old-brush (send dc get-brush))
@@ -113,10 +113,19 @@
      width
      height)))
 
+(define/contract (draw-palette plt width height)
+  (-> (or/c (procedure-arity-includes/c 1) (non-empty-listof color?))
+    (integer-in 1 #f) (integer-in 1 #f) pict?)
+  (cond
+    [(procedure? plt) (draw-palette/continuous plt width height)]
+    [else
+     (let ([w (/ width (length plt))])
+       (draw-swatch-list plt #:swatch-size (cons w height)))]))
+
 (define/contract (draw-palette-table plt ncols #:swatch-size [wh 25])
   (->* ((procedure-arity-includes/c 1) (integer-in 2 #f)) (#:swatch-size real?) pict?)
   (let* ([ncls (* ncols ncols)]
-         [cls (list->vector (quantize plt ncls))])
+         [cls (list->vector (palette-quantize plt ncls))])
     (apply ht-append
            (let loop-h ([cols ncols] [colidx 0] [colinc 1])
              (cond
