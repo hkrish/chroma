@@ -42,6 +42,17 @@
 ;; [unsafe] Must check argument first using 3x3-check
 (define (3x3-ref m r c) (flvector-ref m (+ (* r  3) c)))
 
+(define (3x3-row-ref m r)
+  (let ([ridx (* r  3)])
+    (values (flvector-ref m ridx)
+            (flvector-ref m (+ ridx 1))
+            (flvector-ref m (+ ridx 2)))))
+
+(define (3x3-col-ref m cidx)
+  (values (flvector-ref m cidx)
+          (flvector-ref m (+ cidx 3))
+          (flvector-ref m (+ cidx 6))))
+
 (define (3x3-identity? m #:tolerance [tolerance epsilon.0])
   (3x3-check '3x3-identity? m)
   (define-syntax-rule (0? v) (<= (flabs v) tolerance))

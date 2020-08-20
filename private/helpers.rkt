@@ -7,7 +7,11 @@
          racket/pretty
          racket/string)
 
-(provide define* dbg clamp clamp255 norm/clamp unnorm/clamp flremainder flmodulo)
+(provide define* dbg
+         clamp clamp255 norm/clamp unnorm/clamp
+         flremainder flmodulo
+         zipwith)
+
 
 (define-syntax (define* stx)
   (syntax-case stx ()
@@ -60,3 +64,10 @@
 (define (flmodulo a n)
   (let ([a (fl a)] [n (fl n)])
     (fl- a (fl* n (flfloor (fl/ a n))))))
+
+;; more like map. but for lists of uneven lengths
+(define (zipwith f l1 l2)
+  (let loop ([l1 l1] [l2 l2])
+    (cond
+      [(or (null? l1) (null? l2)) '()]
+      [else (cons (f (car l1) (car l2)) (loop (cdr l1) (cdr l2)))])))
