@@ -23,7 +23,7 @@
         ()
         (flexpt _component g))]
     [(_ (ir ig ib g a b))
-     (with-syntax ([(t) (generate-temporaries #'a)])
+     (with-syntax ([(t) (generate-temporaries (list #'a))])
        #'(expand-trc-func
           (ir ig ib g a b)
           ([t (fl/ (fl- b) a)])
@@ -31,7 +31,7 @@
               (flexpt (fl+ (fl* a _component) b) g)
               0.0)))]
     [(_ (ir ig ib g a b c))
-     (with-syntax ([(t) (generate-temporaries #'a)])
+     (with-syntax ([(t) (generate-temporaries (list #'a))])
        #'(expand-trc-func
           (ir ig ib g a b c)
           ([t (fl/ (fl- b) a)])
@@ -78,14 +78,14 @@
         ()
         (flexpt _component (fl/ 1. g)))]
     [(_ (ir ig ib g a b))
-     (with-syntax ([(t) (generate-temporaries #'a)])
+     (with-syntax ([(t) (generate-temporaries (list #'a))])
        #'(expand-trc-inverse-func
           (ir ig ib g a b)
           ()
           ;; When (= y 0) ? This cannot be defined properly?
           (fl/ (fl- (flexpt _component (fl/ 1. g)) b) a)))]
     [(_ (ir ig ib g a b c))
-     (with-syntax ([(t) (generate-temporaries #'a)])
+     (with-syntax ([(t) (generate-temporaries (list #'a))])
        #'(expand-trc-inverse-func
           (ir ig ib g a b c)
           ()
