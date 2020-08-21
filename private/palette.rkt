@@ -124,7 +124,10 @@
 ;;------------------------------------------------------------
 ;; Palette generation with intuitive parameters
 ;;
-;;Reference: http://alexandria.tue.nl/extra2/afstversl/wsk-i/wijffelaars2008.pdf
+;; Reference: Wijffelaars, M., Vliegen, R., Wijk, J.V., & Linden, E.T. (2008). "Generating
+;;            Color Palettes using Intuitive Parameters." Comput. Graph. Forum,
+;;            27, 743-750.
+;; Source: http://alexandria.tue.nl/extra2/afstversl/wsk-i/wijffelaars2008.pdf
 
 ;; lch arithmetic
 (define-syntax (define-lch-point-op stx)
