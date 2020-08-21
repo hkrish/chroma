@@ -11,6 +11,7 @@
          "./lch.rkt"
          "./conversions.rkt"
          "./matrix3.rkt"
+         "./difference.rkt"
          "./geometry/bezier-quad.rkt")
 
 (provide palette-quantize palette-reverse palette-select-range
@@ -106,8 +107,13 @@
                (fl+ (fl* t b) (fl* s q))
                (fl+ (fl* t c) (fl* s r)))))
 
-(define* (color-distance/log-l (lch-point l1 _ _) (lch-point l2 _ _))
+(define* (color-distance/linear (lch-point l1 _ _) (lch-point l2 _ _))
+  (flabs (fl- l2 l1)))
+
+(define* (color-distance/log (lch-point l1 _ _) (lch-point l2 _ _))
   (flabs (fllog (fl/ (fl- 125. l2) (fl- 125. l1)))))
+
+(define color-distance/cie color-difference/ciede2000)
 
 (struct lch-point lch ()
   #:transparent
@@ -197,7 +203,8 @@
                                      #:brightness [b 0.75]
                                      #:saturation [s 0.6]
                                      #:contrast [c #f]
-                                     #:hue-shift [hs 0.15])
+                                     #:hue-shift [hs 0.15]
+                                     #:scale [scale 'log])
   (->* () ((or/c 'continuous (integer-in 2 #f))
            #:hue real?
            #:brightness (between/c 0 1)
@@ -205,7 +212,8 @@
            #:contrast (or/c (between/c 0 1) #f)
            #:hue-shift (or/c #f
                              (between/c 0 1)
-                             (cons/c (between/c 0 1) color?)))
+                             (cons/c (between/c 0 1) color?))
+           #:scale (or/c 'linear 'log 'cie))
        (or/c (listof color?) (-> (between/c 0 1) color?)))
   (define-values (w cb)
     (cond
@@ -216,6 +224,11 @@
          ;; By default shift towards yellow. Works for a wide variety of hues.
          (values hs (color->lch (make-display-rgb 255.0 255.0 0.0))))]
       [else (values #f #f)]))
+  (define distancef
+    (cond
+      [(eq? 'linear scale) color-distance/linear]
+      [(eq? 'log scale) color-distance/log]
+      [(eq? 'cie scale) color-distance/cie]))
   (let* ([continuous? (eq? count 'continuous)]
          [c (cond
               [c (fl c)]
@@ -246,7 +259,7 @@
                   (bezier-quad-point (car cs) (fl* 2.0 t))
                   (bezier-quad-point (cdr cs) (fl* 2.0 (fl- t 0.5))))))]
          [length->parameter             ; normalized arc-length (0, 1) to parameter
-          (curve-inverse-parameterization curve-pair curve-pair-point color-distance/log-l)]
+          (curve-inverse-parameterization curve-pair curve-pair-point distancef)]
          [t0 (fl* (fl- 1.0 c) (fl b))]
          [->length (lambda (t) (fl+ t0 (fl* c (clamp (fl t)))))]
          [palette
