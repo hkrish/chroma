@@ -8,3 +8,10 @@
 @defmodule[chroma]
 
 Package Description Here
+
+
+Acknowledgments
+---
+
+This product includes color specifications and designs developed by Cynthia Brewer
+(http://colorbrewer.org/).

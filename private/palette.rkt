@@ -12,7 +12,8 @@
          "./conversions.rkt"
          "./matrix3.rkt"
          "./difference.rkt"
-         "./geometry/bezier-quad.rkt")
+         "./geometry/bezier-quad.rkt"
+         "./data/brewer.rkt")
 
 (provide (struct-out palette)
          palette-quantize
@@ -21,7 +22,9 @@
          make-palette/cube-helix
          make-palette/sequential
          make-palette/diverging
-         make-palette/qualitative)
+         make-palette/qualitative
+         make-palette/brewer
+         palette/brewer-ids->list)
 
 
 ;; FIX: TODO: This should be set in the main module
@@ -441,3 +444,17 @@
     (if (eq? count 'continuous)
         pal
         (palette-quantize pal count #:minimum-distance mindist))))
+
+(define/contract (make-palette/brewer id)
+  (-> symbol? (listof color?))
+  (let ([cls (hash-ref palettes/brewer id #f)])
+    (cond
+      ;; I am assuming the original definitions asre in sRGB color space
+      [cls (map (lambda (c) (apply rgb/srgb c)) cls)]
+      [else
+       (raise-argument-error
+        'make-palette/brewer
+        "valid palette id. (try palette-ids/brewer->list for valid ids)"
+        id)])))
+
+(define (palette/brewer-ids->list) (sort (hash-keys palettes/brewer) symbol<?))
