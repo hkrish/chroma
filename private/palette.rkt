@@ -14,31 +14,41 @@
          "./difference.rkt"
          "./geometry/bezier-quad.rkt")
 
-(provide palette-quantize palette-reverse palette-select-range
-         cube-helix-palette sequential-palette)
+(provide (struct-out palette)
+         palette-quantize
+         palette-reverse
+         palette-select-range
+         make-palette/cube-helix
+         make-palette/sequential
+         make-palette/diverging)
 
-;; palette : (float -> color?)
 
 ;; FIX: TODO: This should be set in the main module
 (current-display-color-space rgb/srgb)
 
+(struct palette (f type)
+  #:property prop:procedure (struct-field-index f))
 
-(define/contract (palette-quantize palette n)
-  (-> (procedure-arity-includes/c 1) (integer-in 2 #f) (listof any/c))
-  (let ([n-1 (fl- (fl n) 1.0)])
+(define/contract (palette-quantize pal n)
+  (-> palette? (integer-in 2 #f) (listof any/c))
+  (let ([f (palette-f pal)]
+        [n-1 (fl- (fl n) 1.0)])
     (for/list ([i (in-range n)])
-      (palette (fl/ (fl i) n-1)))))
+      (f (fl/ (fl i) n-1)))))
 
-(define/contract (palette-reverse palette)
-  (-> (procedure-arity-includes/c 1) (procedure-arity-includes/c 1))
-  (lambda (t) (palette (- 1.0 t))))
+(define/contract (palette-reverse pal)
+  (-> palette? palette?)
+  (let ([f (palette-f pal)])
+    (palette (lambda (t) (f (- 1.0 t))) (palette-type pal))))
 
-(define/contract (palette-select-range palette t0 t1)
-  (-> (procedure-arity-includes/c 1) (between/c 0 1) (between/c 0 1)
-     (procedure-arity-includes/c 1))
-  (lambda (t)
-    (let ([td (t1 - t0)])
-      (palette (+ t0 (* td t))))))
+(define/contract (palette-select-range pal t0 t1)
+  (-> palette? (between/c 0 1) (between/c 0 1) palette?)
+  (let ([f (palette-f pal)])
+    (palette
+     (lambda (t)
+       (let ([td (t1 - t0)])
+         (f (+ t0 (* td t)))))
+     (palette-type pal))))
 
 
 ;; ------------------------------------------------------------
@@ -48,37 +58,39 @@
 ;;            intensity images." Bulletin of The Astronomical Society of India. 39.
 ;; Source: http://astron-soc.in/bulletin/11June/289392011.pdf
 
-(define/contract (cube-helix-palette [count 'continuous]
-                                     #:start-hue [start 270.0]
-                                     #:rotation [rot 1.0]
-                                     #:chroma [chroma 1.0]
-                                     #:gamma [gamma 1.0])
+(define/contract (make-palette/cube-helix [count 'continuous]
+                                          #:start-hue [start 270.0]
+                                          #:rotation [rot 1.0]
+                                          #:chroma [chroma 1.0]
+                                          #:gamma [gamma 1.0])
   (->* () ((or/c 'continuous (integer-in 2 #f))
            #:start-hue real?
            #:rotation (between/c -2 2)
            #:chroma (>=/c 0.0)
            #:gamma (>=/c 0.0))
-       (or/c procedure? list?))
+       (or/c palette? list?))
   (let* ([2pi (fl* 2.0 pi)]
          [start (fl+ (fl/ (degrees->radians (flmodulo start 360.0)) 2pi) 1.0)]
          [rot (fl rot)]
          [chroma (fl chroma)]
          [gamma (fl gamma)])
-    (define palette
-      (lambda (t)
-        (let* ([angle (fl* 2pi (fl+ start (fl* rot t)))]
-               [cosa (flcos angle)]
-               [sina (flsin angle)]
-               [t (fl t)]
-               [t (flexpt t gamma)]
-               [amp (fl* chroma t (fl/ (fl- 1.0 t) 2.0))])
-          (rgb/srgb
-           (unnorm/clamp (fl+ t (fl* amp (fl+ (fl* -0.14861 cosa) (fl* 1.78277 sina)))))
-           (unnorm/clamp (fl+ t (fl* amp (fl+ (fl* -0.29227 cosa) (fl* -0.90649 sina)))))
-           (unnorm/clamp (fl+ t (fl* amp 1.97294 cosa)))))))
+    (define pal
+      (palette
+       (lambda (t)
+         (let* ([angle (fl* 2pi (fl+ start (fl* rot t)))]
+                [cosa (flcos angle)]
+                [sina (flsin angle)]
+                [t (fl t)]
+                [t (flexpt t gamma)]
+                [amp (fl* chroma t (fl/ (fl- 1.0 t) 2.0))])
+           (rgb/srgb
+            (unnorm/clamp (fl+ t (fl* amp (fl+ (fl* -0.14861 cosa) (fl* 1.78277 sina)))))
+            (unnorm/clamp (fl+ t (fl* amp (fl+ (fl* -0.29227 cosa) (fl* -0.90649 sina)))))
+            (unnorm/clamp (fl+ t (fl* amp 1.97294 cosa))))))
+       'cube-helix))
     (if (eq? count 'continuous)
-        palette
-        (palette-quantize palette count))))
+        pal
+        (palette-quantize pal count))))
 
 
 ;;------------------------------------------------------------
@@ -131,7 +143,7 @@
 
 (define (mix-hue a h0 h1)
   (let ([m (fl- (flremainder (fl+ 180.0 h1 (fl- h0)) 360.0) 180.0)])
-    (flremainder (fl+ h0 (fl* a m)) 360.0)))
+    (flmodulo (fl+ h0 (fl* a m)) 360.0)))
 
 (define (clamp-chroma lch*)
   (define (max-chroma l h)
@@ -148,15 +160,17 @@
 ;;  Reference: http://alexandria.tue.nl/extra2/afstversl/wsk-i/wijffelaars2008.pdf
 ;;             (modified to handle different RGB display color-spaces)
 (define (saturate-hue clr)
+  (define hue
+    (flmodulo
+     (cond
+       [(color? clr) (lch-h (color->lch clr))]
+       [(real? clr) clr ]
+       [else (raise-argument-error 'saturate-hue "(or/c color? real?)" clr)])
+     360.0))
   (define make-display-rgb (car (current-display-color-space)))
   (define a-display-color (make-display-rgb 0 0 0))
   (define rgb->xyz/mat (rgb->xyz:matrix-ref a-display-color))
   (define inv-trc-fn (cdr (trc-procedures-ref a-display-color)))
-  (define hue
-    (cond
-      [(color? clr) (fl (lch-h (color->lch clr)))]
-      [(real? clr) clr]
-      [else (raise-argument-error 'saturate-hue "(or/c color? real?)" clr)]))
   (let*-values
       ([(hr) (lch-h (color->lch (make-display-rgb 255 0 0)))]   ; hue angle for red
        [(hy) (lch-h (color->lch (make-display-rgb 255 255 0)))] ; hue angle for yellow
@@ -198,13 +212,13 @@
       [(eq? edge 'bp) (make-display-rgb crp-gc 0 255)]
       [else (make-display-rgb 255 0 crp-gc)])))
 
-(define/contract (sequential-palette [count 'continuous]
-                                     #:hue [h 0]
-                                     #:brightness [b 0.75]
-                                     #:saturation [s 0.6]
-                                     #:contrast [c #f]
-                                     #:hue-shift [hs 0.15]
-                                     #:scale [scale 'log])
+(define/contract (make-palette/sequential [count 'continuous]
+                                          #:hue [h 0]
+                                          #:brightness [b 0.75]
+                                          #:saturation [s 0.6]
+                                          #:contrast [con #f]
+                                          #:hue-shift [hs 0.15]
+                                          #:scale [scale 'log])
   (->* () ((or/c 'continuous (integer-in 2 #f))
            #:hue real?
            #:brightness (between/c 0 1)
@@ -214,31 +228,33 @@
                              (between/c 0 1)
                              (cons/c (between/c 0 1) color?))
            #:scale (or/c 'linear 'log 'cie))
-       (or/c (listof color?) (-> (between/c 0 1) color?)))
+       (or/c palette? (listof color?)))
+  ;; Hue-shift amount and target color
   (define-values (w cb)
     (cond
       [(pair? hs)
-       (values (car hs) (color->lch (cdr hs)))]
+       (values (fl (car hs)) (color->lch (cdr hs)))]
       [(real? hs)
        (let ([make-display-rgb (car (current-display-color-space))])
          ;; By default shift towards yellow. Works for a wide variety of hues.
-         (values hs (color->lch (make-display-rgb 255.0 255.0 0.0))))]
+         (values (fl hs) (color->lch (make-display-rgb 255.0 255.0 0.0))))]
       [else (values #f #f)]))
+  ;; Distance function to parameterize LCH bezier curves
   (define distancef
     (cond
       [(eq? 'linear scale) color-distance/linear]
       [(eq? 'log scale) color-distance/log]
       [(eq? 'cie scale) color-distance/cie]))
-  (let* ([continuous? (eq? count 'continuous)]
-         [c (cond
-              [c (fl c)]
-              [continuous? 1.0]
-              [else (flmin 0.88 (fl+ 0.34 (fl* 0.06 (fl count))))])]
-         [h (flmodulo (fl h) 360.0)]
+  ;; Default contrast value is selected based on number of output colors
+  (define c
+    (cond
+      [con (fl con)]
+      [(eq? count 'continuous) 1.0]
+      [else (flmin 0.88 (fl+ 0.34 (fl* 0.06 (fl count))))]))
+  (let* ([s (fl s)]
          [p1 (lch->lch-point (color->lch (saturate-hue h)))]
          [h (lch-h p1)]
          [p0 (lch-point 0.0 0.0 h)]
-         [s (fl s)]
          [p2 (cond
                [(and w (fl> w 0.0))
                 (clamp-chroma
@@ -261,10 +277,87 @@
          [length->parameter             ; normalized arc-length (0, 1) to parameter
           (curve-inverse-parameterization curve-pair curve-pair-point distancef)]
          [t0 (fl* (fl- 1.0 c) (fl b))]
-         [->length (lambda (t) (fl+ t0 (fl* c (clamp (fl t)))))]
-         [palette
-          (lambda (t)
-            (lch-point->lch (curve-pair-point
-                             curve-pair
-                             (length->parameter (->length t)))))])
-    (if continuous? palette (palette-quantize palette count))))
+         [->length (lambda (t) (fl+ t0 (fl* c (clamp (fl t)))))])
+    (define pal
+      (palette
+       (lambda (t)
+         (lch-point->lch (curve-pair-point
+                          curve-pair
+                          (length->parameter (->length t)))))
+       'sequential))
+    (if (eq? count 'continuous)
+        pal
+        (palette-quantize pal count))))
+
+(define/contract (make-palette/diverging [count 'continuous]
+                                         #:hue [h '(0 . 120)]
+                                         #:midpoint [m 0.5]
+                                         #:brightness [b 0.75]
+                                         #:saturation [s 0.6]
+                                         #:contrast [con #f]
+                                         #:hue-shift [hs 0.0]
+                                         #:scale [scale 'log])
+  (->* () ((or/c 'continuous (integer-in 2 #f))
+           #:hue (cons/c real? real?)
+           #:midpoint (between/c 0 1)
+           #:brightness (between/c 0 1)
+           #:saturation (between/c 0 1)
+           #:contrast (or/c (between/c 0 1) #f)
+           #:hue-shift (or/c #f
+                             (between/c 0 1)
+                             (cons/c (between/c 0 1) color?))
+           #:scale (or/c 'linear 'log 'cie))
+       (or/c (listof color?) (-> (between/c 0 1) color?)))
+  ;; Default contrast value is selected based on number of output colors.
+  (define c
+    (cond
+      [con (fl con)]
+      [(eq? count 'continuous) 1.0]
+      [else
+       (let ([count* (fl (+ (floor (/ count 2)) 1))])
+         (flmin 0.88 (fl- 1.0 (fl* 0.06 (fl- 11.0 count*)))))]))
+  (define pal0 (make-palette/sequential 'continuous
+                                        #:hue (car h)
+                                        #:brightness b
+                                        #:saturation s
+                                        #:contrast c
+                                        #:hue-shift hs
+                                        #:scale scale))
+  (define pal1 (make-palette/sequential 'continuous
+                                        #:hue (cdr h)
+                                        #:brightness b
+                                        #:saturation s
+                                        #:contrast c
+                                        #:hue-shift hs
+                                        #:scale scale))
+  (define make-display-rgb (car (current-display-color-space)))
+  (define-values (w n-h)
+    (cond
+      [(pair? hs) (values (fl (car hs)) (lch-h (color->lch (cdr hs))))]
+      [else (values (if (real? hs) (fl hs) 0.0)
+                    (lch-h (color->lch (make-display-rgb 255.0 255.0 0.0))))]))
+  ;; Neutral color
+  (define cn
+    (let ([c0 (pal0 1.0)]
+          [c1 (pal1 1.0)])
+      (clamp-chroma
+       (lch-point (fl/ (fl+ (lch-l c0) (lch-l c1)) 2.0)
+                  (fl* w (fl/ (fl+ (lch-c c0) (lch-c c1)) 2.0))
+                  n-h))))
+  (let* ([m (fl m)]
+         [2e (flabs (fl* 2.0 (fl- (fl m) 0.5)))]
+         [t* (cond
+               [(fl>= m 0.5) (lambda (t) (fl/ t (fl+ 1.0 2e)))]
+               [else (lambda (t) (fl/ (fl+ t 2e) (fl+ 1.0 2e)))])])
+    (define pal
+      (palette
+       (lambda (t)
+         (let ([t_ (t* (clamp (fl t)))])
+           (cond
+             [(fl< t_ 0.5) (pal0 (fl* 2.0 t_))]
+             [(fl> t_ 0.5) (pal1 (fl* 2.0 (fl- 1.0 t_)))]
+             [else cn])))
+       'diverging))
+    (if (eq? count 'continuous)
+        pal
+        (palette-quantize pal count))))

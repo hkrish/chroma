@@ -6,7 +6,6 @@
          racket/draw
          racket/list
          "./base-types.rkt"
-         "./conversions.rkt"
          "./palette.rkt")
 
 (provide (all-defined-out))
