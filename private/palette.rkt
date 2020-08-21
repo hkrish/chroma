@@ -20,7 +20,8 @@
          palette-select-range
          make-palette/cube-helix
          make-palette/sequential
-         make-palette/diverging)
+         make-palette/diverging
+         make-palette/qualitative)
 
 
 ;; FIX: TODO: This should be set in the main module
@@ -29,12 +30,39 @@
 (struct palette (f type)
   #:property prop:procedure (struct-field-index f))
 
-(define/contract (palette-quantize pal n)
-  (-> palette? (integer-in 2 #f) (listof any/c))
-  (let ([f (palette-f pal)]
-        [n-1 (fl- (fl n) 1.0)])
-    (for/list ([i (in-range n)])
-      (f (fl/ (fl i) n-1)))))
+(define/contract (palette-quantize pal n #:minimum-distance [mindist 50])
+  (->* (palette? (integer-in 2 #f))
+       (#:minimum-distance (>/c 0))
+       (listof any/c))
+  (let ([f (palette-f pal)])
+    (cond
+      [(eq? (palette-type pal) 'qualitative)
+       (define (dist* c ls)
+         (for/fold ([mn +inf.0])
+                   ([p (in-list ls)])
+           (let ([d (color-difference c p)])
+             (if (< d mn) d mn))))
+       (let loop ([count n] [cls '()])
+         (cond
+           [(<= count 0) cls]
+           [else
+            (let loop/find ([attempts 50] [dbest -inf.0] [cbest #f])
+              (cond
+                [(<= attempts 0)
+                 (loop (sub1 count) (cons cbest cls))]
+                [else
+                 (define cnext (f (random)))
+                 (define d (dist* cnext cls))
+                 (if (< d mindist)
+                     (let-values ([(dm cm) (if (>= d dbest)
+                                               (values d cnext)
+                                               (values dbest cbest))])
+                       (loop/find (sub1 attempts) dm cm))
+                     (loop (sub1 count) (cons cnext cls)))]))]))]
+      [else
+       (let ([n-1 (fl- (fl n) 1.0)])
+         (for/list ([i (in-range n)])
+           (f (fl/ (fl i) n-1))))])))
 
 (define/contract (palette-reverse pal)
   (-> palette? palette?)
@@ -145,6 +173,12 @@
   (let ([m (fl- (flremainder (fl+ 180.0 h1 (fl- h0)) 360.0) 180.0)])
     (flmodulo (fl+ h0 (fl* a m)) 360.0)))
 
+(define (hue-difference h0 h1)
+  (let* ([h0 (flmodulo h0 360.0)]
+         [h1 (flmodulo h1 360.0)]
+         [hd (flabs (fl- h1 h0))])
+    (if (fl< hd 180.0) hd (fl- 360.0 hd))))
+
 (define (clamp-chroma lch*)
   (define (max-chroma l h)
     (let*-values ([(p-mid) (color->lch (saturate-hue h))]
@@ -153,7 +187,8 @@
                   [(a) (fl/ (fl- p-end-l l) (fl- p-end-l p-mid-l))])
       (fl* a p-mid-c)))
   (match lch*
-    [(lch-point l c h) (lch-point l (flmin c (max-chroma l h)) h)]))
+    [(lch-point l c h) (lch-point l (flmin c (max-chroma l h)) h)]
+    [(lch l c h) (lch l (flmin c (max-chroma l h)) h)]))
 
 ;; Given Hue angle (degrees) returns to the most saturated RGB color (in
 ;; current-display-color-space) corresponding to that hue.
@@ -307,7 +342,7 @@
                              (between/c 0 1)
                              (cons/c (between/c 0 1) color?))
            #:scale (or/c 'linear 'log 'cie))
-       (or/c (listof color?) (-> (between/c 0 1) color?)))
+       (or/c palette? (listof color?)))
   ;; Default contrast value is selected based on number of output colors.
   (define c
     (cond
@@ -341,9 +376,9 @@
     (let ([c0 (pal0 1.0)]
           [c1 (pal1 1.0)])
       (clamp-chroma
-       (lch-point (fl/ (fl+ (lch-l c0) (lch-l c1)) 2.0)
-                  (fl* w (fl/ (fl+ (lch-c c0) (lch-c c1)) 2.0))
-                  n-h))))
+       (lch (fl/ (fl+ (lch-l c0) (lch-l c1)) 2.0)
+            (fl* w (fl/ (fl+ (lch-c c0) (lch-c c1)) 2.0))
+            n-h))))
   (let* ([m (fl m)]
          [2e (flabs (fl* 2.0 (fl- (fl m) 0.5)))]
          [t* (cond
@@ -361,3 +396,45 @@
     (if (eq? count 'continuous)
         pal
         (palette-quantize pal count))))
+
+(define/contract (make-palette/qualitative [count 'continuous]
+                                           #:hue-range [r 1.0]
+                                           #:hue-shift [e 0.0]
+                                           #:brightness [b 1.0]
+                                           #:saturation [s 0.5]
+                                           #:contrast [c 0.5]
+                                           #:minimum-distance [mindist 50])
+  (->* ()
+       ((or/c 'continuous (integer-in 2 #f))
+        #:hue-range (between/c 0 1)
+        #:hue-shift (between/c 0 1)
+        #:brightness (between/c 0 1)
+        #:saturation (between/c 0 1)
+        #:contrast (between/c 0 1)
+        #:minimum-distance (>/c 0))
+       (or/c palette? (listof color?)))
+  (define make-display-rgb (car (current-display-color-space)))
+  ;; In RGB models, yellow typically has maximum lightness of all fully saturated hues in
+  ;; CIELuv space (true for all the rgb-spaces defined in `chroma')
+  (define yellow (color->lch (make-display-rgb 255 255 0)))
+  ;; In RGB models, red typically has maximum chroma in CIELuv space (true for all the
+  ;; rgb-spaces defined in `chroma')
+  (define c-max (lch-c (color->lch (make-display-rgb 255 0 0))))
+  (let* ([e (fl e)]
+         [r (fl r)]
+         [l0 (fl* (fl b) (lch-l yellow))]
+         [l1 (fl* (fl- 1.0 (fl c)) l0)]
+         [yellow-h (lch-h yellow)])
+    (define pal
+      (palette
+       (lambda (t)
+         (let* ([t (clamp (fl t))]
+                [h (flmodulo (fl* 360.0 (fl+ e (fl* r t))) 360.0)]
+                [a (fl/ (hue-difference h yellow-h) 180.0)]
+                [l (fl+ (fl* (fl- 1.0 a) l0) (fl* a l1))]
+                [c-limit (* s c-max)])
+           (clamp-chroma (lch l c-limit h))))
+       'qualitative))
+    (if (eq? count 'continuous)
+        pal
+        (palette-quantize pal count #:minimum-distance mindist))))
