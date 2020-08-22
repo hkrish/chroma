@@ -42,7 +42,7 @@
   #:red-primary (xyY 0.7347 0.2653 1.)
   #:green-primary (xyY 0.1596 0.8404 1.)
   #:blue-primary (xyY 0.0366 0.0001 1.)
-  #:trc (1.8))
+  #:trc (1.8 1.0 0.0 0.062 0.031))
 
 ;; Adobe RGB (1998)
 (define-rgb-color-space adobe
@@ -58,4 +58,4 @@
   #:red-primary (xyY 0.708 0.292 1.)
   #:green-primary (xyY 0.170 0.797 1.)
   #:blue-primary (xyY 0.131 0.046 1.)
-  #:trc (2.4))
+  #:trc (2.222 0.91 0.09 0.222 0.081))
