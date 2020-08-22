@@ -40,11 +40,14 @@
   (let ([f (palette-f pal)])
     (cond
       [(eq? (palette-type pal) 'qualitative)
-       (define (dist* c ls)
+       ;; Minimum distance to all colors in a list
+       (define (min-dist* c ls)
          (for/fold ([mn +inf.0])
                    ([p (in-list ls)])
            (let ([d (color-difference c p)])
              (if (< d mn) d mn))))
+       ;; Try to randomly pick colours that are sufficiently different from all other
+       ;; colours in the list
        (let loop ([count n] [cls '()])
          (cond
            [(<= count 0) cls]
@@ -55,7 +58,7 @@
                  (loop (sub1 count) (cons cbest cls))]
                 [else
                  (define cnext (f (random)))
-                 (define d (dist* cnext cls))
+                 (define d (min-dist* cnext cls))
                  (if (< d mindist)
                      (let-values ([(dm cm) (if (>= d dbest)
                                                (values d cnext)
@@ -170,7 +173,8 @@
    (define point-lerp lch-point-lerp)])
 
 (define* (lch->lch-point (lch l c h))
-  (lch-point l c h))
+  (let-values ([(l c h) (->fl* l c h)])
+    (lch-point l c h)))
 
 (define* (lch-point->lch (lch-point l c h))
   (lch l c h))
@@ -438,7 +442,7 @@
                 [h (flmodulo (fl* 360.0 (fl+ e (fl* r t))) 360.0)]
                 [a (fl/ (hue-difference h yellow-h) 180.0)]
                 [l (fl+ (fl* (fl- 1.0 a) l0) (fl* a l1))]
-                [c-limit (* s c-max)])
+                [c-limit (fl (* s c-max))])
            (clamp-chroma (lch l c-limit h))))
        'qualitative))
     (if (eq? count 'continuous)

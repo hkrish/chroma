@@ -19,28 +19,24 @@
 ;; (XYZ). See conversions.rkt
 
 (define* (luv->lch (luv l u v))
-  (let* ([l (fl l)]
-         [u (fl u)]
-         [v (fl v)])
+  (let-values ([(l u v) (->fl* l u v)])
     (let ([h (radians->degrees (atan v u))])
       (lch l (flhypot u v) (if (fl>= h 0.0) h (fl+ h 360.))))))
 
 (define* (lab->lch/ab (lab l a b))
-  (let* ([l (fl l)]
-         [a (fl a)]
-         [b (fl b)])
+  (let-values ([(l a b) (->fl* l a b)])
     (let ([h (radians->degrees (atan b a))])
       (lch/ab l (flhypot a b) (if (fl>= h 0.0) h (fl+ h 360.))))))
 
 (define* (lch->luv (lch l c h))
   (let ([h (degrees->radians (fl h))]
         [c (fl c)])
-    (luv l (fl* c (flcos h)) (fl* c (flsin h)))))
+    (luv (fl l) (fl* c (flcos h)) (fl* c (flsin h)))))
 
 (define* (lch/ab->lab (lch/ab l c h))
   (let ([h (degrees->radians (fl h))]
         [c (fl c)])
-    (lab l (fl* c (flcos h)) (fl* c (flsin h)))))
+    (lab (fl l) (fl* c (flcos h)) (fl* c (flsin h)))))
 
 (define (lch->xyz c) (luv->xyz (lch->luv c)))
 

@@ -2,12 +2,11 @@
 
 (require math/flonum
          racket/flonum
-         racket/unsafe/ops)
+         racket/unsafe/ops
+         "./helpers.rkt")
 
 (provide (except-out (all-defined-out) 3x3-check 3x3->values/unsafe))
 
-
-(define-syntax-rule (->fl* a ...) (values (real->double-flonum a) ...))
 
 (define (make-3x3 m00 m01 m02 m10 m11 m12 m20 m21 m22)
   (let-values ([(m00 m01 m02 m10 m11 m12 m20 m21 m22)

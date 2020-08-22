@@ -10,7 +10,8 @@
 (provide define* dbg
          clamp clamp255 norm/clamp unnorm/clamp
          flremainder flmodulo
-         zipwith)
+         zipwith
+         ->fl*)
 
 
 (define-syntax (define* stx)
@@ -71,3 +72,6 @@
     (cond
       [(or (null? l1) (null? l2)) '()]
       [else (cons (f (car l1) (car l2)) (loop (cdr l1) (cdr l2)))])))
+
+
+(define-syntax-rule (->fl* a ...) (values (fl a) ...))

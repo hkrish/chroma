@@ -20,10 +20,14 @@
     [(_ srctype:id dsttype:id)
      (with-syntax
          ([name (format-id #'srctype "~a->~a" #'srctype #'dsttype)]
+          [dst? (format-id #'srctype "~a?" #'dsttype)]
           [(tmp) (generate-temporaries (list #'srctype))]
           [src->pcs (format-id #'srctype "~a->xyz" #'srctype)]
           [pcs->dst (format-id #'dsttype "xyz->~a" #'dsttype)])
-       #'(define (name tmp) (pcs->dst (src->pcs tmp))))]))
+       #'(define (name tmp)
+           (if (dst? tmp)
+               tmp
+               (pcs->dst (src->pcs tmp)))))]))
 
 (define-syntax (define-color->color/table stx)
   (syntax-parse stx
@@ -39,6 +43,5 @@
 
 ;; Generic color to other color spaces conversion. Accepts any color type with
 ;; prop:color->xyz property
-
 (define-color->color/table (color)
   (rgb rgb/srgb rgb/display-p3 rgb/prophoto rgb/rec2020 rgb/adobe luv lch lab lch/ab))

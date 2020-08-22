@@ -9,9 +9,9 @@
 
 
 (define* (xyz->luv (xyz x y z))
-  (let* ([Xr (unsafe-struct-ref illuminant/pcs 0)]
-         [Yr (unsafe-struct-ref illuminant/pcs 1)]
-         [Zr (unsafe-struct-ref illuminant/pcs 2)]
+  (let* ([Xr (fl (unsafe-struct-ref illuminant/pcs 0))]
+         [Yr (fl (unsafe-struct-ref illuminant/pcs 1))]
+         [Zr (fl (unsafe-struct-ref illuminant/pcs 2))]
          [x (fl x)]
          [y (fl y)]
          [yr (fl/ y Yr)]
@@ -36,9 +36,9 @@
   (let ([l (fl l)])
     (if (fl= l 0.0)
         (xyz 0. 0. 0.)
-        (let* ([Xr (unsafe-struct-ref illuminant/pcs 0)]
-               [Yr (unsafe-struct-ref illuminant/pcs 1)]
-               [Zr (unsafe-struct-ref illuminant/pcs 2)]
+        (let* ([Xr (fl (unsafe-struct-ref illuminant/pcs 0))]
+               [Yr (fl (unsafe-struct-ref illuminant/pcs 1))]
+               [Zr (fl (unsafe-struct-ref illuminant/pcs 2))]
                [e (fl/ 216. 24389.)]
                [k (fl/ 24389. 27.)]
                [y (if (fl> l (fl* k e))
