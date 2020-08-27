@@ -114,7 +114,7 @@
 
 (define/contract (draw-palette plt width height)
   (-> (or/c (procedure-arity-includes/c 1) (non-empty-listof color?))
-    (integer-in 1 #f) (integer-in 1 #f) pict?)
+     (integer-in 1 #f) (integer-in 1 #f) pict?)
   (cond
     [(procedure? plt) (draw-palette/continuous plt width height)]
     [else

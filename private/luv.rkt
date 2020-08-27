@@ -14,7 +14,6 @@
          [Zr (fl (unsafe-struct-ref illuminant/pcs 2))]
          [x (fl x)]
          [y (fl y)]
-         [yr (fl/ y Yr)]
          [d* (fl+ x (fl* 15. (fl y)) (fl* 3. (fl z)))])
     (if (fl= d* 0.0)
         (luv 0. 0. 0.)
@@ -25,6 +24,7 @@
                [vr* (fl/ (fl* 9. Yr) dr*)]
                [e (fl/ 216. 24389.)]
                [k (fl/ 24389. 27.)]
+               [yr (fl/ y Yr)]
                [l (if (fl> yr e)
                       (fl- (fl* 116. (flexpt yr (fl/ 1. 3.))) 16.)
                       (fl* k yr))]

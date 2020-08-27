@@ -8,7 +8,7 @@
          racket/unsafe/ops
          "./base-types.rkt"
          "./matrix3.rkt"
-         "./parametric.rkt")
+         "./trc.rkt")
 
 (provide define-rgb-color-space)
 
