@@ -5,6 +5,7 @@
          math/flonum
          racket/match
          racket/struct
+         racket/contract
          "./helpers.rkt"
          "./matrix3.rkt")
 
@@ -31,7 +32,9 @@
          xyz/D50->xyz/D65
          current-color-print-round-places
          color-printer
-         current-display-color-space)
+         current-display-color-space
+         css-color?
+         css-color->color)
 
 ;; The naming of different color types are `color-space-type/color-profile-id'
 ;;  - color-space-types as defined by CIE (RGB, Luv, Lab, XYZ etc.) except always in
@@ -236,3 +239,27 @@
      (cons make-rgb
            (let ([xyz->display-rgb (xyz->color-ref a-display-color)])
              (lambda (c) (xyz->display-rgb (color->xyz c))))))))
+
+;; <css-color> ::= "#" <css-seq> | <css-seq>
+;; <css-seq> ::= (3 * <hex-digit>) | (6 * <hex-digit>)
+(define (css-color? c)
+  (and (string? c)
+       (regexp-match-exact? #px"#?([[:xdigit:]]{3}){1,2}" c)))
+
+(define/contract (css-color->color clr)
+  (-> string? color?)
+  (let* ([->color (car (current-display-color-space))]
+         [i (if (char=? #\# (string-ref clr 0)) 1 0)]
+         [len (- (string-length clr) i)])
+    (unless (or (= len 3) (= len 6))
+      (raise-argument-error 'css-color->color "valid css color" clr))
+    (let ([m (regexp-match
+              #px"#?([[:xdigit:]]{1,2})([[:xdigit:]]{1,2})([[:xdigit:]]{1,2})$"
+              clr i)])
+      (unless m
+        (raise-argument-error 'css-color->color "valid css color" clr))
+      (apply ->color
+             (if (= (string-length (cadr m)) 1)
+                 (map (lambda (a) (let ([x (string->number a 16)]) (+ (* 16 x) x))) (cdr m))
+                 (map (lambda (a) (string->number a 16)) (cdr m)))))))
+
